@@ -8,6 +8,7 @@ from pyrogram.types import (
 from pyromod import listen
 import os
 import mimetypes
+import time
 
 API_ID = int(os.environ.get("API_ID"))
 API_HASH = os.environ.get("API_HASH")
@@ -22,6 +23,36 @@ app = Client(
 
 THUMB_FOLDER = "thumbnails"
 os.makedirs(THUMB_FOLDER, exist_ok=True)
+
+
+# ================= PROGRESS FUNCTION ================= #
+
+async def progress(current, total, message, start, action):
+    now = time.time()
+    diff = now - start
+
+    if diff < 1:
+        return
+
+    percentage = current * 100 / total
+    speed = current / diff
+    eta = round((total - current) / speed) if speed > 0 else 0
+
+    bar_length = 20
+    filled_length = int(bar_length * current // total)
+    bar = "■" * filled_length + "□" * (bar_length - filled_length)
+
+    try:
+        await message.edit_text(
+            f"{action}...\n\n"
+            f"{bar}\n\n"
+            f"📁 Size : {round(current/(1024*1024),2)} MB | {round(total/(1024*1024),2)} MB\n"
+            f"⏳ Done : {round(percentage,2)}%\n"
+            f"🚀 Speed : {round(speed/1024,2)} KB/s\n"
+            f"⏰ ETA : {eta} sec"
+        )
+    except:
+        pass
 
 
 # ================= START ================= #
@@ -48,6 +79,30 @@ async def save_thumb(client, message: Message):
 
 # ================= FILE DETECT ================= #
 
+@app.on_message(filters.document)
+async def detect_file(client, message: Message):
+    keyboard = InlineKeyboardMarkup(
+        [
+            [
+                InlineKeyboardButton(
+                    "✏️ Rename",
+                    callback_data=f"rename_{message.id}"
+                ),
+                InlineKeyboardButton("❌ Cancel", callback_data="cancel"),
+            ]
+        ]
+    )
+
+    await message.reply_text(
+        f"📦 **File Detected**\n\n"
+        f"📄 Name: `{message.document.file_name}`\n"
+        f"📦 Size: {round(message.document.file_size / (1024*1024), 2)} MB",
+        reply_markup=keyboard
+    )
+
+
+# ================= CALLBACK HANDLER ================= #
+
 @app.on_callback_query()
 async def callback_handler(client, query: CallbackQuery):
 
@@ -57,6 +112,7 @@ async def callback_handler(client, query: CallbackQuery):
     if query.data.startswith("rename_"):
 
         file_message_id = int(query.data.split("_")[1])
+
         original = await client.get_messages(
             chat_id=query.message.chat.id,
             message_ids=file_message_id
@@ -77,40 +133,103 @@ async def callback_handler(client, query: CallbackQuery):
 
         new_name = response.text
 
-        processing = await query.message.reply_text("⏳ Downloading...")
+        processing = await query.message.reply_text("Starting...")
 
-        file_path = await original.download()
+        # ---------- DOWNLOAD ----------
+        start = time.time()
 
-        await processing.edit("⏫ Uploading...")
+        file_path = await original.download(
+            progress=progress,
+            progress_args=(processing, start, "Downloading")
+        )
+
+        # Rename locally
+        new_file_path = os.path.join(
+            os.path.dirname(file_path),
+            new_name
+        )
+        os.rename(file_path, new_file_path)
+
+        # ---------- UPLOAD ----------
+        start = time.time()
 
         user_id = str(query.from_user.id)
         thumb_path = f"{THUMB_FOLDER}/{user_id}.jpg"
 
-        import mimetypes
         mime_type, _ = mimetypes.guess_type(new_name)
 
         if mime_type and mime_type.startswith("video"):
             await query.message.reply_video(
-                video=file_path,
+                video=new_file_path,
                 caption="✅ File Renamed Successfully!",
-                thumb=thumb_path if os.path.exists(thumb_path) else None
+                thumb=thumb_path if os.path.exists(thumb_path) else None,
+                progress=progress,
+                progress_args=(processing, start, "Uploading")
             )
         else:
             await query.message.reply_document(
-                document=file_path,
+                document=new_file_path,
                 file_name=new_name,
                 caption="✅ File Renamed Successfully!",
-                thumb=thumb_path if os.path.exists(thumb_path) else None
+                thumb=thumb_path if os.path.exists(thumb_path) else None,
+                progress=progress,
+                progress_args=(processing, start, "Uploading")
             )
 
-        os.remove(file_path)
+        os.remove(new_file_path)
         await processing.delete()
+
+
+app.run()            )
+        else:
+            await query.message.reply_document(
+                document=new_file_path,
+                file_name=new_name,
+                caption="✅ File Renamed Successfully!",
+                thumb=thumb_path if os.path.exists(thumb_path) else None,
+                progress=progress,
+                progress_args=(processing, start, "Uploading")
+            )
+
+        os.remove(new_file_path)
+        await processing.delete()
+        #========= FILE DETECT ================= #
+
+
 
 
 # ================= BUTTON HANDLER ================= #
 
-@app.on_callback_query()
-async def callback_handler(client, query: CallbackQuery):
+import mimetypes
+
+import time
+
+async def progress(current, total, message, start, action):
+    now = time.time()
+    diff = now - start
+
+    if diff < 1:
+        return
+
+    percentage = current * 100 / total
+    speed = current / diff
+    eta = round((total - current) / speed) if speed > 0 else 0
+
+    bar_length = 20
+    filled_length = int(bar_length * current // total)
+    bar = "■" * filled_length + "□" * (bar_length - filled_length)
+
+    try:
+        await message.edit_text(
+            f"{action}...\n\n"
+            f"{bar}\n\n"
+            f"📁 Size : {round(current/(1024*1024),2)} MB | {round(total/(1024*1024),2)} MB\n"
+            f"⏳ Done : {round(percentage,2)}%\n"
+            f"🚀 Speed : {round(speed/1024,2)} KB/s\n"
+            f"⏰ ETA : {eta} sec"
+        )
+    except:
+        pass
 
     if query.data == "cancel":
         return await query.message.edit("❌ Cancelled.")
@@ -132,7 +251,7 @@ async def callback_handler(client, query: CallbackQuery):
         # Get last file message
         original = query.message.reply_to_message
 
-        processing = await query.message.reply_text("⏳ Downloading...")
+        
 
         file_path = await original.download()
 
