@@ -48,23 +48,63 @@ async def save_thumb(client, message: Message):
 
 # ================= FILE DETECT ================= #
 
-@app.on_message(filters.document)
-async def detect_file(client, message: Message):
-    keyboard = InlineKeyboardMarkup(
-        [
-            [
-                InlineKeyboardButton("✏️ Rename", callback_data="rename"),
-                InlineKeyboardButton("❌ Cancel", callback_data="cancel"),
-            ]
-        ]
-    )
+@app.on_callback_query()
+async def callback_handler(client, query: CallbackQuery):
 
-    await message.reply_text(
-        f"📦 **File Detected**\n\n"
-        f"📄 Name: `{message.document.file_name}`\n"
-        f"📦 Size: {round(message.document.file_size / (1024*1024), 2)} MB",
-        reply_markup=keyboard
-    )
+    if query.data == "cancel":
+        return await query.message.edit("❌ Cancelled.")
+
+    if query.data.startswith("rename_"):
+
+        file_message_id = int(query.data.split("_")[1])
+        original = await client.get_messages(
+            chat_id=query.message.chat.id,
+            message_ids=file_message_id
+        )
+
+        await query.message.edit(
+            "✏️ Send new file name with extension\n(example: movie.mkv)"
+        )
+
+        try:
+            response = await client.listen(
+                chat_id=query.message.chat.id,
+                filters=filters.user(query.from_user.id),
+                timeout=120
+            )
+        except:
+            return await query.message.edit("❌ Time expired.")
+
+        new_name = response.text
+
+        processing = await query.message.reply_text("⏳ Downloading...")
+
+        file_path = await original.download()
+
+        await processing.edit("⏫ Uploading...")
+
+        user_id = str(query.from_user.id)
+        thumb_path = f"{THUMB_FOLDER}/{user_id}.jpg"
+
+        import mimetypes
+        mime_type, _ = mimetypes.guess_type(new_name)
+
+        if mime_type and mime_type.startswith("video"):
+            await query.message.reply_video(
+                video=file_path,
+                caption="✅ File Renamed Successfully!",
+                thumb=thumb_path if os.path.exists(thumb_path) else None
+            )
+        else:
+            await query.message.reply_document(
+                document=file_path,
+                file_name=new_name,
+                caption="✅ File Renamed Successfully!",
+                thumb=thumb_path if os.path.exists(thumb_path) else None
+            )
+
+        os.remove(file_path)
+        await processing.delete()
 
 
 # ================= BUTTON HANDLER ================= #
