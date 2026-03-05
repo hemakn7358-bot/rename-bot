@@ -1,10 +1,5 @@
 from pyrogram import Client, filters
-from pyrogram.types import (
-    InlineKeyboardMarkup,
-    InlineKeyboardButton,
-    CallbackQuery,
-    Message
-)
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from pyromod import listen
 import os
 import mimetypes
@@ -25,7 +20,7 @@ THUMB_FOLDER = "thumbnails"
 os.makedirs(THUMB_FOLDER, exist_ok=True)
 
 
-# ================= PROGRESS FUNCTION ================= #
+# ================= PROGRESS ================= #
 
 async def progress(current, total, message, start, action):
     now = time.time()
@@ -38,9 +33,9 @@ async def progress(current, total, message, start, action):
     speed = current / diff
     eta = round((total - current) / speed) if speed > 0 else 0
 
-    bar_length = 20
-    filled_length = int(bar_length * current // total)
-    bar = "■" * filled_length + "□" * (bar_length - filled_length)
+    bar_len = 20
+    filled = int(bar_len * current // total)
+    bar = "■" * filled + "□" * (bar_len - filled)
 
     try:
         await message.edit_text(
@@ -58,21 +53,22 @@ async def progress(current, total, message, start, action):
 # ================= START ================= #
 
 @app.on_message(filters.command("start"))
-async def start_handler(client, message: Message):
+async def start_handler(client, message):
     await message.reply_text(
-        "📂 **This is a File Rename Bot**\n\n"
+        "📂 File Rename Bot\n\n"
         "👑 Host: @Anime_friend001\n\n"
-        "🖼 Send photo to set thumbnail.\n"
-        "📁 Send a file to rename."
+        "🖼 Send photo to set thumbnail\n"
+        "📁 Send file to rename"
     )
 
 
 # ================= SAVE THUMB ================= #
 
 @app.on_message(filters.photo)
-async def save_thumb(client, message: Message):
+async def save_thumb(client, message):
     user_id = str(message.from_user.id)
     thumb_path = f"{THUMB_FOLDER}/{user_id}.jpg"
+
     await message.download(file_name=thumb_path)
     await message.reply_text("✅ Personal thumbnail saved!")
 
@@ -80,204 +76,96 @@ async def save_thumb(client, message: Message):
 # ================= FILE DETECT ================= #
 
 @app.on_message(filters.document)
-async def detect_file(client, message: Message):
+async def detect_file(client, message):
+
     keyboard = InlineKeyboardMarkup(
-        [
-            [
-                InlineKeyboardButton(
-                    "✏️ Rename",
-                    callback_data=f"rename_{message.id}"
-                ),
-                InlineKeyboardButton("❌ Cancel", callback_data="cancel"),
-            ]
-        ]
+        [[InlineKeyboardButton("✏️ Rename", callback_data=f"rename|{message.id}")]]
     )
 
     await message.reply_text(
-        f"📦 **File Detected**\n\n"
-        f"📄 Name: `{message.document.file_name}`\n"
-        f"📦 Size: {round(message.document.file_size / (1024*1024), 2)} MB",
+        f"📦 File Detected\n\n"
+        f"📄 {message.document.file_name}\n"
+        f"📦 {round(message.document.file_size/(1024*1024),2)} MB",
         reply_markup=keyboard
     )
 
 
-# ================= CALLBACK HANDLER ================= #
+# ================= CALLBACK ================= #
 
 @app.on_callback_query()
-async def callback_handler(client, query: CallbackQuery):
+async def rename_handler(client, query):
 
-    if query.data == "cancel":
-        return await query.message.edit("❌ Cancelled.")
+    data = query.data.split("|")
 
-    if query.data.startswith("rename_"):
-
-        file_message_id = int(query.data.split("_")[1])
-
-        original = await client.get_messages(
-            chat_id=query.message.chat.id,
-            message_ids=file_message_id
-        )
-
-        await query.message.edit(
-            "✏️ Send new file name with extension\n(example: movie.mkv)"
-        )
-
-        try:
-            response = await client.listen(
-                chat_id=query.message.chat.id,
-                filters=filters.user(query.from_user.id),
-                timeout=120
-            )
-        except:
-            return await query.message.edit("❌ Time expired.")
-
-        new_name = response.text
-
-        processing = await query.message.reply_text("Starting...")
-
-        # ---------- DOWNLOAD ----------
-        start = time.time()
-
-        file_path = await original.download(
-            progress=progress,
-            progress_args=(processing, start, "Downloading")
-        )
-
-        # Rename locally
-        new_file_path = os.path.join(
-            os.path.dirname(file_path),
-            new_name
-        )
-        os.rename(file_path, new_file_path)
-
-        # ---------- UPLOAD ----------
-        start = time.time()
-
-        user_id = str(query.from_user.id)
-        thumb_path = f"{THUMB_FOLDER}/{user_id}.jpg"
-
-        mime_type, _ = mimetypes.guess_type(new_name)
-
-        if mime_type and mime_type.startswith("video"):
-            await query.message.reply_video(
-                video=new_file_path,
-                caption="✅ File Renamed Successfully!",
-                thumb=thumb_path if os.path.exists(thumb_path) else None,
-                progress=progress,
-                progress_args=(processing, start, "Uploading")
-            )
-        else:
-            await query.message.reply_document(
-                document=new_file_path,
-                file_name=new_name,
-                caption="✅ File Renamed Successfully!",
-                thumb=thumb_path if os.path.exists(thumb_path) else None,
-                progress=progress,
-                progress_args=(processing, start, "Uploading")
-            )
-
-        os.remove(new_file_path)
-        await processing.delete()
-
-
-app.run()            )
-        else:
-            await query.message.reply_document(
-                document=new_file_path,
-                file_name=new_name,
-                caption="✅ File Renamed Successfully!",
-                thumb=thumb_path if os.path.exists(thumb_path) else None,
-                progress=progress,
-                progress_args=(processing, start, "Uploading")
-            )
-
-        os.remove(new_file_path)
-        await processing.delete()
-        #========= FILE DETECT ================= #
-
-
-
-
-# ================= BUTTON HANDLER ================= #
-
-import mimetypes
-
-import time
-
-async def progress(current, total, message, start, action):
-    now = time.time()
-    diff = now - start
-
-    if diff < 1:
+    if data[0] != "rename":
         return
 
-    percentage = current * 100 / total
-    speed = current / diff
-    eta = round((total - current) / speed) if speed > 0 else 0
+    msg_id = int(data[1])
 
-    bar_length = 20
-    filled_length = int(bar_length * current // total)
-    bar = "■" * filled_length + "□" * (bar_length - filled_length)
+    original = await client.get_messages(query.message.chat.id, msg_id)
+
+    await query.message.edit(
+        "✏️ Send new file name with extension\n(example: movie.mkv)"
+    )
 
     try:
-        await message.edit_text(
-            f"{action}...\n\n"
-            f"{bar}\n\n"
-            f"📁 Size : {round(current/(1024*1024),2)} MB | {round(total/(1024*1024),2)} MB\n"
-            f"⏳ Done : {round(percentage,2)}%\n"
-            f"🚀 Speed : {round(speed/1024,2)} KB/s\n"
-            f"⏰ ETA : {eta} sec"
+        response = await client.listen(
+            chat_id=query.message.chat.id,
+            filters=filters.user(query.from_user.id),
+            timeout=120
         )
     except:
-        pass
+        return await query.message.reply_text("❌ Time expired")
 
-    if query.data == "cancel":
-        return await query.message.edit("❌ Cancelled.")
+    new_name = response.text
 
-    if query.data == "rename":
-        await query.message.edit("✏️ Send new file name with extension (example: movie.mkv)")
+    processing = await query.message.reply_text("Starting...")
 
-        try:
-            response = await client.listen(
-                chat_id=query.message.chat.id,
-                filters=filters.user(query.from_user.id),
-                timeout=120
-            )
-        except:
-            return await query.message.edit("❌ Time expired.")
+    # ---------- DOWNLOAD ----------
 
-        new_name = response.text
+    start = time.time()
 
-        # Get last file message
-        original = query.message.reply_to_message
+    file_path = await original.download(
+        progress=progress,
+        progress_args=(processing, start, "Downloading")
+    )
 
-        
+    new_file = os.path.join(os.path.dirname(file_path), new_name)
 
-        file_path = await original.download()
+    os.rename(file_path, new_file)
 
-        await processing.edit("⏫ Uploading...")
+    # ---------- UPLOAD ----------
 
-        user_id = str(query.from_user.id)
-        thumb_path = f"{THUMB_FOLDER}/{user_id}.jpg"
+    start = time.time()
 
-        mime_type, _ = mimetypes.guess_type(new_name)
+    user_id = str(query.from_user.id)
+    thumb_path = f"{THUMB_FOLDER}/{user_id}.jpg"
 
-        if mime_type and mime_type.startswith("video"):
-            await query.message.reply_video(
-                video=file_path,
-                caption="✅ File Renamed Successfully!",
-                thumb=thumb_path if os.path.exists(thumb_path) else None
-            )
-        else:
-            await query.message.reply_document(
-                document=file_path,
-                file_name=new_name,
-                caption="✅ File Renamed Successfully!",
-                thumb=thumb_path if os.path.exists(thumb_path) else None
-            )
+    mime, _ = mimetypes.guess_type(new_name)
 
-        os.remove(file_path)
-        await processing.delete()
+    if mime and mime.startswith("video"):
+
+        await query.message.reply_video(
+            video=new_file,
+            caption="✅ File Renamed Successfully!",
+            thumb=thumb_path if os.path.exists(thumb_path) else None,
+            progress=progress,
+            progress_args=(processing, start, "Uploading")
+        )
+
+    else:
+        await query.message.reply_document(
+            document=new_file,
+            file_name=new_name,
+            caption="✅ File Renamed Successfully!",
+            thumb=thumb_path if os.path.exists(thumb_path) else None,
+            progress=progress,
+            progress_args=(processing, start, "Uploading")
+        )
+
+    os.remove(new_file)
+
+    await processing.delete()
 
 
 app.run()
