@@ -147,8 +147,9 @@ async def rename_handler(client, query):
 
         await query.message.reply_video(
             video=new_file,
-            caption="✅ File Renamed Successfully!",
-            thumb=thumb_path if os.path.exists(thumb_path) else None,
+            caption=f"{new_name}",
+            thumb=thumb_path 
+            if os.path.exists(thumb_path) else None,
             progress=progress,
             progress_args=(processing, start, "Uploading")
         )
@@ -157,8 +158,9 @@ async def rename_handler(client, query):
         await query.message.reply_document(
             document=new_file,
             file_name=new_name,
-            caption="✅ File Renamed Successfully!",
-            thumb=thumb_path if os.path.exists(thumb_path) else None,
+            caption=f"{new_name}",
+            thumb=thumb_path 
+            if os.path.exists(thumb_path) else None,
             progress=progress,
             progress_args=(processing, start, "Uploading")
         )
