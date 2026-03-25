@@ -1,3 +1,11 @@
-pyrogram
-tgcrypto
+pyrogram==2.0.83
 pyromod
+humanize
+pymongo
+Pillow
+hachoir
+TgCrypto
+dnspython
+Flask
+gunicorn
+aiohttp
