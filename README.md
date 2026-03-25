@@ -1,7 +1,7 @@
 <img src="https://static.zerochan.net/Iribitari.Gal.ni.Ma%E3%80%87ko.Tsukawasete.Morau.Hanashi.full.4603580.jpg" alt="logo" target="/blank">
 
 <h1 align="center">
- <b><a href="https://t.me/filerenamexprobot" target="/blank">Rename Bot 4GB</a></>
+ <b><a href="https://t.me/filerenamexprobot" target="/blank">Kurothana Rename Bot</a></>
 </h1>
 
 <p align="center">🩷 Thanks for Being Here 🩷</p>
