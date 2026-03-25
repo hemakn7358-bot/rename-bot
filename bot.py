@@ -24,3 +24,12 @@ if STRING_SESSION:
     
 else:
     bot.run()
+
+
+
+
+# @ATF_Admin_Gojo
+# Don't Remove Credit 🥺
+# Telegram Channel @anime_friend001
+# Back-Up Channel @ATF_Admin_Gojo
+# Developer @ATF_Admin_Gojo
