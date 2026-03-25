@@ -1,0 +1,78 @@
+{
+    "name": "Kurothana Rename Bot",
+    "description": "Telegram File Renamer Bot",
+    "logo": "https://static.zerochan.net/Iribitari.Gal.ni.Ma%E3%80%87ko.Tsukawasete.Morau.Hanashi.full.4603580.jpg",
+    "keywords": ["Premium Rename Bot", "Kurothana Rename Bot", "Mongo DB"],    
+    "repository": "https://github.com/hemakn7358-bot",
+    
+    "env": {
+        "API_ID": {
+            "description": "Your APP ID From my.telegram.org ",
+            "value": "",
+            "required": true
+        },
+        
+        "API_HASH": {
+            "description": "Your API Hash From my.telegram.org ",
+            "value": "",
+            "required": true
+        },
+        
+        "BOT_TOKEN": {
+            "description": "Your Bot Token From @BotFather",
+            "value": "",
+            "required": true
+        },
+        
+        "ADMIN": {
+            "description":"Add Your User ID, If Multiple Is Use Space To Split",
+            "value": "",
+            "required": true
+        },
+        
+        "STRING_SESSION": {
+            "description": "Premium 4GB Client Pyrogram v2 String Session, You Can Get It From @StringGenXRobot",
+            "value": "",
+            "required": false
+        },
+        
+        "FORCE_SUB": {
+            "description": "Your Force Subscribe Channel Username Without @",
+            "value": "",
+            "required": false 
+        },
+        
+        "LOG_CHANNEL": {
+            "description":"Bot Logs Channel To Sending User Data & 4GB Premium Client To Use, Id Must Startswith -100",
+            "value": "",
+            "required": true          
+        },
+        
+        "DATABASE_URL": {
+            "description": "Your Mongo DB URL Obtained From mongodb.com",
+            "value": "",
+            "required": true
+        },
+        
+        "DATABASE_NAME":{ 
+            "description":"Your Mongo DB Database Name",
+            "value": "",
+            "required": false
+        },
+        
+        "START_PIC": {
+            "description": "Your Bot Start Command Pic, You Can Get It From @GenTelegraphBot",
+            "value": "https://static.zerochan.net/Iribitari.Gal.ni.Ma%E3%80%87ko.Tsukawasete.Morau.Hanashi.full.4603580.jpg",
+            "required": false
+        }
+    },
+    
+    "buildpacks": [
+        {
+            "url": "heroku/python"
+        },
+        {
+            "url": "https://github.com/jonathanong/heroku-buildpack-ffmpeg-latest"
+        }    
+    ]
+}
